@@ -5,6 +5,9 @@ using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 
 namespace MarkForSomething;
+// NOTE: for now always assume expanded inventory view
+// TODO: Need to track the position of the inventory window
+// TODO: Need to calculate the bounding box & position of each grid
 
 public sealed class Plugin : IDalamudPlugin
 {
