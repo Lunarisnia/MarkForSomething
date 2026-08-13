@@ -1,8 +1,9 @@
-﻿using Dalamud.Game.Command;
-using Dalamud.Game.ClientState.Keys;
+﻿using Dalamud.Game.ClientState.Keys;
+using Dalamud.Game.Command;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
+using ECommons;
 
 namespace MarkForSomething;
 // NOTE: for now always assume expanded inventory view
@@ -25,6 +26,7 @@ public sealed class Plugin : IDalamudPlugin
 
     public Plugin()
     {
+        ECommonsMain.Init(PluginInterface, this);
         inventoryManager = new InventoryManager();
 
         CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
@@ -60,8 +62,8 @@ public sealed class Plugin : IDalamudPlugin
         var items = inventoryManager.GetInventory();
         Log.Information("Inventory contains {ItemCount} occupied slots:", items.Count);
 
-        foreach (var item in items)
-            Log.Information("{Container} slot {Slot}: item {ItemId} x{Quantity}",
-                item.Container, item.Slot, item.ItemId, item.Quantity);
+        // foreach (var item in items)
+        //     Log.Information("{Container} slot {Slot}: item {ItemId} x{Quantity}",
+        //         item.Container, item.Slot, item.ItemId, item.Quantity);
     }
 }

@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using Dalamud.Game.Inventory;
-using Dalamud.Plugin.Services;
+using MarkForSomething.InventoryTool;
 
 namespace MarkForSomething;
 
@@ -33,6 +33,7 @@ public class InventoryManager
             }
         }
 
+        InventoryWindow.GetInventoryPosition();
         return items;
     }
 
