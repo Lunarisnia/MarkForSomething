@@ -1,9 +1,12 @@
 ﻿using Dalamud.Game.ClientState.Keys;
 using Dalamud.Game.Command;
+using Dalamud.Bindings.ImGui;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using ECommons;
+using MarkForSomething.InventoryTool;
+using System.Numerics;
 
 namespace MarkForSomething;
 // NOTE: for now always assume expanded inventory view
@@ -23,6 +26,8 @@ public sealed class Plugin : IDalamudPlugin
     private const VirtualKey InventoryKey = VirtualKey.F9;
     private readonly InventoryManager inventoryManager;
     private bool inventoryKeyWasDown;
+    private Vector2 inventoryPosition;
+    private bool inventoryIsVisible;
 
     public Plugin()
     {
@@ -35,21 +40,41 @@ public sealed class Plugin : IDalamudPlugin
         });
 
         Framework.Update += OnFrameworkUpdate;
+        PluginInterface.UiBuilder.Draw += DrawOverlay;
     }
 
     public void Dispose()
     {
         Framework.Update -= OnFrameworkUpdate;
+        PluginInterface.UiBuilder.Draw -= DrawOverlay;
         CommandManager.RemoveHandler(CommandName);
     }
 
     private void OnFrameworkUpdate(IFramework framework)
     {
+        var position = InventoryWindow.GetInventoryPosition();
+        inventoryPosition = new(position.X, position.Y);
+        inventoryIsVisible = position.X != 0 || position.Y != 0;
+
         var keyIsDown = KeyState[InventoryKey];
         if (keyIsDown && !inventoryKeyWasDown)
             ListInventory();
 
         inventoryKeyWasDown = keyIsDown;
+    }
+
+    // TODO: Draw an unfilled rect instead
+    // TODO: calculate the position of each grid somehow
+    private void DrawOverlay()
+    {
+        if (!inventoryIsVisible)
+            return;
+
+        var drawList = ImGui.GetForegroundDrawList();
+        drawList.AddRectFilled(
+            inventoryPosition,
+            inventoryPosition + new Vector2(40, 40),
+            ImGui.ColorConvertFloat4ToU32(new(1.0f, 1.0f, 0.0f, 1.0f)));
     }
 
     private void OnCommand(string command, string args)
