@@ -1,12 +1,11 @@
-﻿using Dalamud.Game.ClientState.Keys;
-using Dalamud.Game.Command;
+﻿using System.Collections.Generic;
+using System.Numerics;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Game.ClientState.Keys;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using ECommons;
-using MarkForSomething.InventoryTool;
-using System.Numerics;
 
 namespace MarkForSomething;
 // NOTE: for now always assume expanded inventory view
@@ -16,28 +15,21 @@ namespace MarkForSomething;
 public sealed class Plugin : IDalamudPlugin
 {
     [PluginService] internal static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
-    [PluginService] internal static ICommandManager CommandManager { get; private set; } = null!;
     [PluginService] internal static IFramework Framework { get; private set; } = null!;
     [PluginService] internal static IKeyState KeyState { get; private set; } = null!;
     [PluginService] internal static IGameInventory GameInventory { get; private set; } = null!;
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
 
-    private const string CommandName = "/pinventory";
     private const VirtualKey InventoryKey = VirtualKey.F9;
     private readonly InventoryManager inventoryManager;
+    private List<Vector2> inventorySlotPositions = [];
     private bool inventoryKeyWasDown;
-    private Vector2 inventoryPosition;
     private bool inventoryIsVisible;
 
     public Plugin()
     {
         ECommonsMain.Init(PluginInterface, this);
         inventoryManager = new InventoryManager();
-
-        CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
-        {
-            HelpMessage = "Lists the items in your inventory."
-        });
 
         Framework.Update += OnFrameworkUpdate;
         PluginInterface.UiBuilder.Draw += DrawOverlay;
@@ -47,14 +39,12 @@ public sealed class Plugin : IDalamudPlugin
     {
         Framework.Update -= OnFrameworkUpdate;
         PluginInterface.UiBuilder.Draw -= DrawOverlay;
-        CommandManager.RemoveHandler(CommandName);
     }
 
     private void OnFrameworkUpdate(IFramework framework)
     {
-        var position = InventoryWindow.GetInventoryPosition();
-        inventoryPosition = new(position.X, position.Y);
-        inventoryIsVisible = position.X != 0 || position.Y != 0;
+        inventorySlotPositions = inventoryManager.GetInventorySlotPositions();
+        inventoryIsVisible = inventorySlotPositions.Count > 0;
 
         var keyIsDown = KeyState[InventoryKey];
         if (keyIsDown && !inventoryKeyWasDown)
@@ -63,23 +53,14 @@ public sealed class Plugin : IDalamudPlugin
         inventoryKeyWasDown = keyIsDown;
     }
 
-    // TODO: Draw an unfilled rect instead
-    // TODO: calculate the position of each grid somehow
     private void DrawOverlay()
     {
         if (!inventoryIsVisible)
             return;
 
         var drawList = ImGui.GetForegroundDrawList();
-        drawList.AddRectFilled(
-            inventoryPosition,
-            inventoryPosition + new Vector2(40, 40),
-            ImGui.ColorConvertFloat4ToU32(new(1.0f, 1.0f, 0.0f, 1.0f)));
-    }
-
-    private void OnCommand(string command, string args)
-    {
-        ListInventory();
+        foreach (var position in inventorySlotPositions)
+            InventoryOverlayRenderer.DrawGridMarker(drawList, position);
     }
 
     private void ListInventory()
